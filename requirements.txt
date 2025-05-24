@@ -1,0 +1,20 @@
+# Dependencias del Extractor de Código
+# Para ejecutar: pip install -r requirements.txt
+
+# Detección automática de codificación de archivos
+chardet>=5.2.0
+
+# Funcionalidad drag & drop para tkinter
+tkinterdnd2>=0.3.0
+
+# GUI moderna
+customtkinter
+PySide6>=5.2.0
+
+# Utilidades de sistema y archivos
+pathlib2>=2.3.7; python_version < "3.4"
+
+# Para desarrollo y testing (opcional)
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0

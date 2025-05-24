@@ -1,0 +1,1380 @@
+=== EXTRACCIÓN DE CÓDIGO ===
+Carpeta origen: C:/Users/jamor/Downloads/Code Saver/extractor-codigo
+Total de archivos a procesar: 8
+==================================================
+
+--- Carpeta: . ---
+--- Inicio del archivo: codigo_extraido.txt ---
+
+--- Fin del archivo: codigo_extraido.txt ---
+
+--- Inicio del archivo: config.py ---
+"""
+Configuraciones de la aplicación Extractor de Código.
+"""
+
+import os
+
+# Configuraciones de archivos
+DEFAULT_EXCLUDED_FILES = [
+    "package-lock.json",
+    "yarn.lock", 
+    "composer.lock",
+    "Pipfile.lock",
+    "poetry.lock",
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini"
+]
+
+DEFAULT_EXCLUDED_FOLDERS = [
+    "node_modules",
+    "__pycache__",
+    ".git",
+    ".svn",
+    ".hg",
+    "build",
+    "dist",
+    "target",
+    "bin",
+    "obj",
+    ".vscode",
+    ".idea",
+    "vendor",
+    ".env",
+    "venv",
+    "env",
+    "virtualenv"
+]
+
+DEFAULT_ALLOWED_EXTENSIONS = [
+    ".py",
+    ".js", 
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".html",
+    ".htm",
+    ".css",
+    ".scss",
+    ".sass",
+    ".less",
+    ".java",
+    ".c",
+    ".cpp",
+    ".cc",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".php",
+    ".rb",
+    ".go",
+    ".rs",
+    ".swift",
+    ".kt",
+    ".scala",
+    ".sh",
+    ".bat",
+    ".ps1",
+    ".sql",
+    ".xml",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".conf",
+    ".md",
+    ".txt",
+    ".dockerfile",
+    ".makefile",
+    ".vue",
+    ".svelte"
+]
+
+# Configuraciones de la GUI
+WINDOW_TITLE = "Extractor de Código v2.0"
+WINDOW_SIZE = "900x700"
+WINDOW_MIN_SIZE = (800, 600)
+
+# Colores del tema
+COLORS = {
+    "bg_primary": "#2b2b2b",
+    "bg_secondary": "#3c3c3c", 
+    "bg_accent": "#404040",
+    "text_primary": "#ffffff",
+    "text_secondary": "#b0b0b0",
+    "accent": "#007acc",
+    "accent_hover": "#005a9e",
+    "success": "#4caf50",
+    "warning": "#ff9800",
+    "error": "#f44336",
+    "border": "#555555"
+}
+
+# Configuraciones de archivo de salida
+DEFAULT_OUTPUT_FILENAME = "codigo_extraido.txt"
+DEFAULT_LOG_FILENAME = "errores_extraccion.log"
+
+# Configuraciones de procesamiento
+MAX_FILE_SIZE_MB = 10  # Tamaño máximo de archivo individual en MB
+ENCODING_DETECTION_BYTES = 8192  # Bytes a leer para detectar codificación
+
+# Configuraciones de la aplicación
+APP_VERSION = "2.0.0"
+APP_DESCRIPTION = "Extractor de código para consolidar proyectos de programación"
+APP_AUTHOR = "CodeExtractor"
+
+# Rutas
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR = os.path.join(PROJECT_DIR, "assets")
+CONFIG_DIR = os.path.join(PROJECT_DIR, "config")
+LOGS_DIR = os.path.join(PROJECT_DIR, "logs")
+
+# Crear directorios si no existen
+for directory in [ASSETS_DIR, CONFIG_DIR, LOGS_DIR]:
+    os.makedirs(directory, exist_ok=True)
+--- Fin del archivo: config.py ---
+
+--- Inicio del archivo: main.py ---
+#!/usr/bin/env python3
+"""
+Extractor de C√≥digo - Aplicaci√≥n Principal
+Aplicaci√≥n GUI para extraer y consolidar c√≥digo de proyectos en un archivo de texto.
+"""
+
+import sys
+import os
+
+# Agregar el directorio actual al path para importar m√≥dulos locales
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QHBoxLayout, QFrame, QTextEdit, QStatusBar, QLineEdit
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QFont, QIcon, QColor, QPalette
+from PySide6.QtCore import Qt, QTimer
+from core.file_extractor import FileExtractor
+from config import DEFAULT_OUTPUT_FILENAME, DEFAULT_LOG_FILENAME
+import os
+
+class DragDropFrame(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setFrameShape(QFrame.Box)
+        self.setLineWidth(2)
+        
+        # Estilo inicial m√°s limpio
+        self.setStyleSheet("""
+            QFrame {
+                border: 2px dashed #4e8cff;
+                border-radius: 15px;
+                background-color: #f8f9fa;
+                min-height: 180px;
+                max-height: 180px;
+            }
+            QFrame:hover {
+                border-color: #357ae8;
+                background-color: #eef3ff;
+            }
+        """)
+        
+        # Layout principal perfectamente centrado con QVBoxLayout y addStretch
+        layout = QVBoxLayout()
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(2)  # Espaciado m√≠nimo entre icono y texto
+
+        # Icono (m√°s grande)
+        self.icon_label = QLabel("üìÅ")
+        self.icon_label.setAlignment(Qt.AlignHCenter)
+        self.icon_label.setFont(QFont("Segoe UI Emoji", 28))
+        self.icon_label.setStyleSheet("color: #4e8cff; background: transparent; border: none;")
+
+        # Texto principal (HTML para salto de l√≠nea y centrado)
+        self.folder_name = QLabel("<div style='text-align:center;'>Arrastra una carpeta aqu√≠<br>o haz clic para buscar</div>")
+        self.folder_name.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        self.folder_name.setAlignment(Qt.AlignHCenter)
+        self.folder_name.setStyleSheet("color: #333; background: transparent; border: none;")
+        self.folder_name.setTextFormat(Qt.RichText)
+        self.folder_name.setWordWrap(True)
+        self.folder_name.setMinimumHeight(32)
+
+        # Ruta del archivo (inicialmente oculta)
+        self.folder_path = QLabel("")
+        self.folder_path.setFont(QFont("Segoe UI", 8))
+        self.folder_path.setAlignment(Qt.AlignHCenter)
+        self.folder_path.setStyleSheet("color: #666; background: transparent; border: none;")
+        self.folder_path.setWordWrap(True)
+        self.folder_path.setVisible(False)
+
+        layout.addStretch(1)
+        layout.addWidget(self.icon_label, 0, Qt.AlignHCenter)
+        layout.addWidget(self.folder_name, 0, Qt.AlignHCenter)
+        layout.addWidget(self.folder_path, 0, Qt.AlignHCenter)
+        layout.addStretch(2)
+
+        self.setLayout(layout)
+
+        self.file_path = None
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            # Cambio visual al arrastrar
+            self.setStyleSheet("""
+                QFrame {
+                    border: 2px solid #28a745;
+                    border-radius: 15px;
+                    background-color: #d4edda;
+                    min-height: 180px;
+                    max-height: 180px;
+                }
+            """)
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event):
+        # Volver al estilo original
+        self.setStyleSheet("""
+            QFrame {
+                border: 2px dashed #4e8cff;
+                border-radius: 15px;
+                background-color: #f8f9fa;
+                min-height: 180px;
+                max-height: 180px;
+            }
+            QFrame:hover {
+                border-color: #357ae8;
+                background-color: #eef3ff;
+            }
+        """)
+
+    def dropEvent(self, event: QDropEvent):
+        # Volver al estilo original
+        self.dragLeaveEvent(event)
+        
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            if urls:
+                path = urls[0].toLocalFile()
+                if os.path.isdir(path):
+                    self.file_path = path
+                    self.update_display(path)
+                else:
+                    self.show_error("‚ùå Solo se permiten carpetas")
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            dlg = QFileDialog(self, "Seleccionar carpeta")
+            dlg.setFileMode(QFileDialog.Directory)
+            if dlg.exec():
+                folders = dlg.selectedFiles()
+                if folders:
+                    path = folders[0]
+                    self.file_path = path
+                    self.update_display(path)
+    
+    def update_display(self, path):
+        """Actualiza la visualizaci√≥n cuando se selecciona una carpeta"""
+        folder_name = os.path.basename(path)
+        
+        # Cambiar icono y texto - MANTENER TAMA√ëO PEQUE√ëO
+        self.icon_label.setText("‚úÖ")
+        self.icon_label.setFont(QFont("Segoe UI Emoji", 36))  # Mantener el mismo tama√±o
+        self.folder_name.setText(f"Carpeta seleccionada: {folder_name}")
+        
+        # Mostrar ruta (truncada si es muy larga)
+        display_path = path
+        if len(display_path) > 60:
+            display_path = "..." + display_path[-57:]
+        
+        self.folder_path.setText(display_path)
+        self.folder_path.setVisible(True)
+        self.folder_path.setMaximumHeight(25)  # Altura m√°s compacta
+        
+        # Cambiar estilo para mostrar que est√° seleccionada
+        self.setStyleSheet("""
+            QFrame {
+                border: 2px solid #28a745;
+                border-radius: 15px;
+                background-color: #d4edda;
+                min-height: 180px;
+                max-height: 180px;
+            }
+        """)
+    
+    def show_error(self, message):
+        """Muestra un mensaje de error temporal"""
+        self.icon_label.setText("‚ùå")
+        self.icon_label.setFont(QFont("Segoe UI Emoji", 36))  # Mantener el mismo tama√±o
+        self.folder_name.setText(message)
+        self.folder_path.setVisible(False)
+        self.folder_path.setMaximumHeight(0)
+        
+        # Timer para volver al estado original despu√©s de 3 segundos
+        QTimer.singleShot(3000, self.reset_display)
+    
+    def reset_display(self):
+        """Resetea la visualizaci√≥n al estado inicial"""
+        self.file_path = None
+        self.icon_label.setText("üìÅ")
+        self.icon_label.setFont(QFont("Segoe UI Emoji", 36))  # Mantener el mismo tama√±o
+        self.folder_name.setText("Arrastra una carpeta aqu√≠ o haz clic para buscar")
+        self.folder_path.setText("")
+        self.folder_path.setVisible(False)
+        self.folder_path.setMaximumHeight(0)
+        
+        self.setStyleSheet("""
+            QFrame {
+                border: 2px dashed #4e8cff;
+                border-radius: 15px;
+                background-color: #f8f9fa;
+                min-height: 180px;
+                max-height: 180px;
+            }
+            QFrame:hover {
+                border-color: #357ae8;
+                background-color: #eef3ff;
+            }
+        """)
+
+class ExtractorWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Extractor de C√≥digo (PySide6)")
+        self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), "app_icon.ico")))
+        self.setMinimumSize(700, 500)
+        self.extractor = FileExtractor()
+        self.current_source_path = ""
+        self.current_output_path = DEFAULT_OUTPUT_FILENAME
+        self.init_ui()
+
+    def init_ui(self):
+        central = QWidget()
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(30, 30, 30, 10)
+        layout.setSpacing(18)
+
+        title = QLabel("Extractor de C√≥digo")
+        title.setFont(QFont("Segoe UI", 22, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        subtitle = QLabel("Consolida todo el c√≥digo de tu proyecto en un archivo de texto")
+        subtitle.setFont(QFont("Segoe UI", 12))
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet("color: #4e8cff;")
+        layout.addWidget(subtitle)
+
+        self.drop_frame = DragDropFrame()
+        layout.addWidget(self.drop_frame)
+
+        # Output section elegante
+        output_layout = QHBoxLayout()
+        output_layout.addWidget(QLabel("Archivo de salida:"))
+        self.output_entry = QLineEdit()
+        self.output_entry.setText(DEFAULT_OUTPUT_FILENAME)
+        self.output_entry.setMinimumWidth(320)
+        self.output_entry.setStyleSheet("QLineEdit { border: 2px solid #4e8cff; border-radius: 8px; padding: 4px 8px; font-size: 13px; }")
+        output_layout.addWidget(self.output_entry)
+        btn_browse = QPushButton("üìÇ")
+        btn_browse.setToolTip("Buscar archivo de salida")
+        btn_browse.setFixedWidth(36)
+        btn_browse.setStyleSheet("QPushButton { background: #eaf1fb; border-radius: 8px; font-size: 18px; } QPushButton:hover { background: #d5f5e3; }")
+        btn_browse.clicked.connect(self.select_output_file)
+        output_layout.addWidget(btn_browse)
+        layout.addLayout(output_layout)
+
+        # Action buttons modernos
+        btn_layout = QHBoxLayout()
+        self.btn_extract = QPushButton("üöÄ Extraer C√≥digo")
+        self.btn_extract.setStyleSheet("QPushButton { background: #4e8cff; color: white; border-radius: 12px; font-size: 15px; padding: 8px 20px; } QPushButton:hover { background: #357ae8; }")
+        self.btn_extract.setMinimumHeight(36)
+        self.btn_extract.clicked.connect(self.start_extraction)
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.btn_extract)
+        self.btn_clear = QPushButton("üóëÔ∏è Limpiar")
+        self.btn_clear.setStyleSheet("QPushButton { background: #f2f2f2; color: #444; border-radius: 12px; font-size: 15px; padding: 8px 20px; } QPushButton:hover { background: #ffe0e0; }")
+        self.btn_clear.setMinimumHeight(36)
+        self.btn_clear.clicked.connect(self.clear_selection)
+        btn_layout.addWidget(self.btn_clear)
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+
+        # Status bar
+        self.status = QStatusBar()
+        self.setStatusBar(self.status)
+        self.status.showMessage("Listo para extraer c√≥digo")
+
+        self.setCentralWidget(central)
+
+    def select_output_file(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Guardar archivo de c√≥digo extra√≠do", self.output_entry.text(), "Archivos de texto (*.txt)")
+        if path:
+            self.output_entry.setText(path)
+
+    def start_extraction(self):
+        folder = self.drop_frame.file_path
+        output_path = self.output_entry.text().strip()
+        if not folder:
+            self.status.showMessage("Selecciona una carpeta primero", 5000)
+            return
+        if not output_path:
+            self.status.showMessage("Especifica un archivo de salida", 5000)
+            return
+        try:
+            log_path = os.path.join(os.path.dirname(output_path), DEFAULT_LOG_FILENAME)
+            processed_files, errors = self.extractor.extract_content(folder, output_path, log_path)
+            msg = f"Extracci√≥n completada. Archivos: {processed_files}. Errores: {len(errors)}. Guardado en: {output_path}"
+            self.status.showMessage(msg, 10000)
+        except Exception as e:
+            self.status.showMessage(f"Error: {str(e)}", 10000)
+
+    def clear_selection(self):
+        # Usar el m√©todo reset_display de DragDropFrame
+        self.drop_frame.reset_display()
+        self.output_entry.setText(DEFAULT_OUTPUT_FILENAME)
+        self.status.showMessage("Listo para extraer c√≥digo", 5000)
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    win = ExtractorWindow()
+    win.show()
+    sys.exit(app.exec())
+--- Fin del archivo: main.py ---
+
+--- Inicio del archivo: requirements.txt ---
+# Dependencias del Extractor de C칩digo
+# Para ejecutar: pip install -r requirements.txt
+
+# Detecci칩n autom치tica de codificaci칩n de archivos
+chardet>=5.2.0
+
+# Funcionalidad drag & drop para tkinter
+tkinterdnd2>=0.3.0
+
+# GUI moderna
+customtkinter
+PySide6>=5.2.0
+
+# Utilidades de sistema y archivos
+pathlib2>=2.3.7; python_version < "3.4"
+
+# Para desarrollo y testing (opcional)
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
+--- Fin del archivo: requirements.txt ---
+
+--- Carpeta: assets ---
+(Carpeta vacía)
+
+--- Carpeta: config ---
+(Carpeta vacía)
+
+--- Carpeta: core ---
+--- Inicio del archivo: core\file_extractor.py ---
+"""
+Módulo principal para la extracción de contenido de archivos.
+"""
+
+import os
+import chardet
+from pathlib import Path
+from typing import List, Tuple, Callable, Optional
+import logging
+from config import (
+    DEFAULT_EXCLUDED_FILES, 
+    DEFAULT_EXCLUDED_FOLDERS,
+    DEFAULT_ALLOWED_EXTENSIONS,
+    MAX_FILE_SIZE_MB,
+    ENCODING_DETECTION_BYTES
+)
+
+class FileExtractor:
+    """Clase principal para extraer contenido de archivos de una carpeta."""
+    
+    def __init__(self):
+        self.excluded_files = DEFAULT_EXCLUDED_FILES.copy()
+        self.excluded_folders = DEFAULT_EXCLUDED_FOLDERS.copy()
+        self.allowed_extensions = DEFAULT_ALLOWED_EXTENSIONS.copy()
+        self.max_file_size = MAX_FILE_SIZE_MB * 1024 * 1024  # Convertir a bytes
+        self.progress_callback: Optional[Callable] = None
+        self.cancel_flag = False
+        
+    def set_progress_callback(self, callback: Callable):
+        """Establece la función de callback para reportar progreso."""
+        self.progress_callback = callback
+        
+    def cancel_extraction(self):
+        """Cancela la extracción en curso."""
+        self.cancel_flag = True
+        
+    def detect_encoding(self, file_path: str) -> str:
+        """
+        Detecta la codificación de un archivo.
+        
+        Args:
+            file_path: Ruta del archivo
+            
+        Returns:
+            Codificación detectada o 'utf-8' como fallback
+        """
+        try:
+            with open(file_path, 'rb') as f:
+                raw_data = f.read(ENCODING_DETECTION_BYTES)
+                result = chardet.detect(raw_data)
+                return result['encoding'] if result['encoding'] else 'utf-8'
+        except Exception:
+            return 'utf-8'
+    
+    def is_file_allowed(self, file_path: str) -> bool:
+        """
+        Verifica si un archivo debe ser procesado.
+        
+        Args:
+            file_path: Ruta del archivo
+            
+        Returns:
+            True si el archivo debe ser procesado, False en caso contrario
+        """
+        file_name = os.path.basename(file_path)
+        
+        # Verificar archivos excluidos
+        if file_name in self.excluded_files:
+            return False
+            
+        # Verificar extensión
+        _, ext = os.path.splitext(file_name)
+        if ext.lower() not in self.allowed_extensions:
+            return False
+            
+        # Verificar tamaño del archivo
+        try:
+            if os.path.getsize(file_path) > self.max_file_size:
+                return False
+        except OSError:
+            return False
+            
+        return True
+    
+    def is_folder_allowed(self, folder_path: str) -> bool:
+        """
+        Verifica si una carpeta debe ser procesada.
+        
+        Args:
+            folder_path: Ruta de la carpeta
+            
+        Returns:
+            True si la carpeta debe ser procesada, False en caso contrario
+        """
+        folder_name = os.path.basename(folder_path)
+        return folder_name not in self.excluded_folders
+    
+    def count_files(self, source_path: str) -> int:
+        """
+        Cuenta el total de archivos a procesar para el progreso.
+        
+        Args:
+            source_path: Ruta de origen
+            
+        Returns:
+            Número total de archivos a procesar
+        """
+        total_files = 0
+        
+        for root, dirs, files in os.walk(source_path):
+            # Filtrar carpetas excluidas
+            dirs[:] = [d for d in dirs if self.is_folder_allowed(os.path.join(root, d))]
+            
+            for file in files:
+                file_path = os.path.join(root, file)
+                if self.is_file_allowed(file_path):
+                    total_files += 1
+                    
+        return total_files
+    
+    def extract_content(self, source_path: str, output_path: str, log_path: Optional[str] = None) -> Tuple[int, List[str]]:
+        """
+        Extrae el contenido de todos los archivos permitidos en una carpeta.
+        
+        Args:
+            source_path: Carpeta de origen
+            output_path: Archivo de salida
+            log_path: Archivo de log de errores (opcional)
+            
+        Returns:
+            Tupla con (número de archivos procesados, lista de errores)
+        """
+        if not os.path.exists(source_path):
+            raise FileNotFoundError(f"La carpeta de origen no existe: {source_path}")
+        
+        processed_files = 0
+        errors = []
+        self.cancel_flag = False
+        
+        # Contar archivos totales para progreso
+        total_files = self.count_files(source_path)
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as output_file:
+                # Escribir encabezado
+                output_file.write(f"=== EXTRACCIÓN DE CÓDIGO ===\n")
+                output_file.write(f"Carpeta origen: {source_path}\n")
+                output_file.write(f"Total de archivos a procesar: {total_files}\n")
+                output_file.write(f"{'='*50}\n\n")
+                
+                current_file = 0
+                
+                for root, dirs, files in os.walk(source_path):
+                    if self.cancel_flag:
+                        break
+                        
+                    # Filtrar carpetas excluidas
+                    dirs[:] = [d for d in dirs if self.is_folder_allowed(os.path.join(root, d))]
+                    
+                    # Escribir información de la carpeta
+                    relative_path = os.path.relpath(root, source_path)
+                    output_file.write(f"--- Carpeta: {relative_path} ---\n")
+                    
+                    # Verificar si la carpeta está vacía
+                    allowed_files = [f for f in files if self.is_file_allowed(os.path.join(root, f))]
+                    if not allowed_files and not dirs:
+                        output_file.write("(Carpeta vacía)\n\n")
+                        continue
+                    
+                    # Procesar archivos
+                    for file in files:
+                        if self.cancel_flag:
+                            break
+                            
+                        file_path = os.path.join(root, file)
+                        
+                        if not self.is_file_allowed(file_path):
+                            continue
+                            
+                        current_file += 1
+                        
+                        # Reportar progreso
+                        if self.progress_callback:
+                            progress = (current_file / total_files) * 100
+                            self.progress_callback(progress, f"Procesando: {file}")
+                        
+                        try:
+                            # Detectar codificación y leer archivo
+                            encoding = self.detect_encoding(file_path)
+                            
+                            with open(file_path, 'r', encoding=encoding, errors='replace') as f:
+                                content = f.read()
+                            
+                            # Escribir contenido al archivo de salida
+                            relative_file_path = os.path.relpath(file_path, source_path)
+                            output_file.write(f"--- Inicio del archivo: {relative_file_path} ---\n")
+                            output_file.write(content)
+                            if not content.endswith('\n'):
+                                output_file.write('\n')
+                            output_file.write(f"--- Fin del archivo: {relative_file_path} ---\n\n")
+                            
+                            processed_files += 1
+                            
+                        except Exception as e:
+                            error_msg = f"Error al procesar {file_path}: {str(e)}"
+                            errors.append(error_msg)
+                            
+                            # Log del error
+                            if log_path:
+                                try:
+                                    with open(log_path, 'a', encoding='utf-8') as log_file:
+                                        log_file.write(f"[ERROR] {error_msg}\n")
+                                except Exception:
+                                    pass  # Si no se puede escribir el log, continuar
+                
+                # Escribir resumen final
+                output_file.write(f"\n{'='*50}\n")
+                output_file.write(f"=== RESUMEN DE EXTRACCIÓN ===\n")
+                output_file.write(f"Archivos procesados exitosamente: {processed_files}\n")
+                output_file.write(f"Errores encontrados: {len(errors)}\n")
+                if self.cancel_flag:
+                    output_file.write("NOTA: Extracción cancelada por el usuario\n")
+                output_file.write(f"{'='*50}\n")
+        
+        except Exception as e:
+            error_msg = f"Error crítico durante la extracción: {str(e)}"
+            errors.append(error_msg)
+            raise Exception(error_msg)
+        
+        return processed_files, errors
+    
+    def get_summary(self, source_path: str) -> dict:
+        """
+        Obtiene un resumen de la carpeta a procesar.
+        
+        Args:
+            source_path: Carpeta de origen
+            
+        Returns:
+            Diccionario con estadísticas del contenido
+        """
+        if not os.path.exists(source_path):
+            return {}
+        
+        summary = {
+            'total_folders': 0,
+            'total_files': 0,
+            'allowed_files': 0,
+            'excluded_files': 0,
+            'total_size': 0,
+            'extensions': {},
+            'largest_file': None,
+            'largest_size': 0
+        }
+        
+        for root, dirs, files in os.walk(source_path):
+            summary['total_folders'] += len(dirs)
+            summary['total_files'] += len(files)
+            
+            for file in files:
+                file_path = os.path.join(root, file)
+                
+                try:
+                    file_size = os.path.getsize(file_path)
+                    summary['total_size'] += file_size
+                    
+                    if file_size > summary['largest_size']:
+                        summary['largest_size'] = file_size
+                        summary['largest_file'] = os.path.relpath(file_path, source_path)
+                    
+                    _, ext = os.path.splitext(file)
+                    ext = ext.lower()
+                    summary['extensions'][ext] = summary['extensions'].get(ext, 0) + 1
+                    
+                    if self.is_file_allowed(file_path):
+                        summary['allowed_files'] += 1
+                    else:
+                        summary['excluded_files'] += 1
+                        
+                except OSError:
+                    continue
+        
+        return summary
+--- Fin del archivo: core\file_extractor.py ---
+
+--- Inicio del archivo: core\__init__.py ---
+"""
+Módulo core del Extractor de Código.
+Contiene la lógica principal de procesamiento de archivos.
+"""
+
+from .file_extractor import FileExtractor
+
+__all__ = ['FileExtractor']
+--- Fin del archivo: core\__init__.py ---
+
+--- Carpeta: gui ---
+--- Inicio del archivo: gui\components.py ---
+"""
+Componentes personalizados para la interfaz gráfica.
+"""
+
+import customtkinter as ctk
+from tkinter import messagebox
+import threading
+import time
+from config import COLORS
+
+class ProgressDialog:
+    """Diálogo de progreso para la extracción de archivos (CTk)."""
+    def __init__(self, parent, cancel_callback=None):
+        self.parent = parent
+        self.cancel_callback = cancel_callback
+        self.dialog = None
+        self.progress_var = 0
+        self.status_var = ""
+        self.is_cancelled = False
+
+    def show(self):
+        self.dialog = ctk.CTkToplevel(self.parent)
+        self.dialog.title("Extrayendo Código...")
+        self.dialog.geometry("500x200")
+        self.dialog.resizable(False, False)
+        self.dialog.grab_set()
+        x = (self.dialog.winfo_screenwidth() // 2) - (250)
+        y = (self.dialog.winfo_screenheight() // 2) - (100)
+        self.dialog.geometry(f'+{x}+{y}')
+
+        # Barra de progreso
+        self.progressbar = ctk.CTkProgressBar(self.dialog, width=400)
+        self.progressbar.pack(pady=(40, 10))
+        self.progressbar.set(0)
+
+        # Etiqueta de estado
+        self.status_label = ctk.CTkLabel(self.dialog, text="Iniciando extracción...", font=ctk.CTkFont(size=14))
+        self.status_label.pack(pady=(10, 20))
+
+        # Botón cancelar
+        cancel_button = ctk.CTkButton(self.dialog, text="Cancelar", command=self.cancel)
+        cancel_button.pack(pady=(0, 10))
+
+        self.dialog.protocol("WM_DELETE_WINDOW", self.cancel)
+        self.dialog.wait_window()
+
+    def update_progress(self, percent, status):
+        self.progressbar.set(percent / 100)
+        self.status_label.configure(text=status)
+        self.dialog.update_idletasks()
+
+    def cancel(self):
+        self.is_cancelled = True
+        if self.cancel_callback:
+            self.cancel_callback()
+        self.close()
+
+    def close(self):
+        if self.dialog:
+            self.dialog.destroy()
+
+class ConfigDialog:
+    """Diálogo para configurar extensiones y exclusiones (CTk)."""
+    def __init__(self, parent, extractor):
+        self.parent = parent
+        self.extractor = extractor
+        self.dialog = ctk.CTkToplevel(self.parent)
+        self.dialog.title("Configuración avanzada")
+        self.dialog.geometry("600x450")
+        self.dialog.resizable(False, False)
+        self.dialog.grab_set()
+        x = (self.dialog.winfo_screenwidth() // 2) - (300)
+        y = (self.dialog.winfo_screenheight() // 2) - (225)
+        self.dialog.geometry(f'+{x}+{y}')
+
+        info_label = ctk.CTkLabel(self.dialog, text="(Configuración avanzada próximamente)", font=ctk.CTkFont(size=14), text_color="#888")
+        info_label.pack(expand=True)
+
+        close_button = ctk.CTkButton(self.dialog, text="Cerrar", command=self.dialog.destroy)
+        close_button.pack(pady=20)
+
+class ModernButton(ctk.CTkButton):
+    """Botón con estilo moderno personalizado (CTk)."""
+    def __init__(self, parent, primary=False, **kwargs):
+        if primary:
+            kwargs['fg_color'] = COLORS["success"]
+            kwargs['hover_color'] = "#45a049"
+            kwargs['text_color'] = COLORS["text_primary"]
+            kwargs['font'] = ctk.CTkFont(size=12, weight="bold")
+        else:
+            kwargs['fg_color'] = COLORS["accent"]
+            kwargs['hover_color'] = COLORS["accent_hover"]
+            kwargs['text_color'] = COLORS["text_primary"]
+            kwargs['font'] = ctk.CTkFont(size=11)
+        super().__init__(parent, **kwargs)
+
+class ModernFrame(ctk.CTkFrame):
+    """Frame con estilo moderno (CTk)."""
+    def __init__(self, parent, **kwargs):
+        if 'fg_color' not in kwargs:
+            kwargs['fg_color'] = COLORS["bg_secondary"]
+        super().__init__(parent, **kwargs)
+--- Fin del archivo: gui\components.py ---
+
+--- Inicio del archivo: gui\main_window.py ---
+"""
+Interfaz gr√°fica principal del Extractor de C√≥digo.
+"""
+
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
+from tkinterdnd2 import DND_FILES, TkinterDnD
+import os
+import threading
+from pathlib import Path
+
+from core.file_extractor import FileExtractor
+from gui.components import ModernButton, ModernFrame, ProgressDialog, ConfigDialog
+from config import (
+    WINDOW_TITLE, WINDOW_SIZE, WINDOW_MIN_SIZE, COLORS,
+    DEFAULT_OUTPUT_FILENAME, DEFAULT_LOG_FILENAME
+)
+
+class CodeExtractorGUI:
+    """Interfaz gr√°fica principal de la aplicaci√≥n."""
+    
+    def __init__(self):
+        # Inicializar la ventana principal con soporte para drag & drop
+        self.root = TkinterDnD.Tk()
+        self.root.title(WINDOW_TITLE)
+        self.root.geometry(WINDOW_SIZE)
+        self.root.minsize(*WINDOW_MIN_SIZE)
+        self.root.configure(bg=COLORS["bg_primary"])
+        
+        self.extractor = FileExtractor()
+        self.current_source_path = ""
+        self.current_output_path = ""
+        self.extraction_thread = None
+        self.progress_dialog = None
+        
+        self.setup_window()
+        self.create_widgets()
+        self.setup_drag_drop()
+    
+    def setup_window(self):
+        """Configura la ventana principal."""
+        self.root.title(WINDOW_TITLE)
+        self.root.geometry(WINDOW_SIZE)
+        self.root.minsize(*WINDOW_MIN_SIZE)
+        
+        # Centrar ventana
+        self.center_window()
+        
+        # Configurar color de fondo
+        self.root.configure(bg=COLORS["bg_primary"])
+        
+        # Icono de la ventana (opcional)
+        try:
+            # Si tienes un archivo de icono, descomenta la siguiente l√≠nea
+            # self.root.iconbitmap('assets/icon.ico')
+            pass
+        except:
+            pass
+    
+    def center_window(self):
+        """Centra la ventana en la pantalla."""
+        self.root.update_idletasks()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.root.winfo_screenheight() // 2) - (height // 2)
+        self.root.geometry(f'+{x}+{y}')
+    
+    # Eliminado: setup_styles. Todos los estilos ahora se aplican directamente con customtkinter y los componentes ModernButton/ModernFrame.
+    
+    def create_widgets(self):
+        """Crea todos los widgets de la interfaz."""
+        # Frame principal moderno
+        main_frame = ModernFrame(self.root)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # T√≠tulo
+        title_label = ctk.CTkLabel(main_frame, text="Extractor de C√≥digo", font=ctk.CTkFont(size=22, weight="bold"), text_color=COLORS["text_primary"])
+        title_label.pack(pady=(0, 5))
+
+        subtitle_label = ctk.CTkLabel(main_frame, text="Consolida todo el c√≥digo de tu proyecto en un archivo de texto", font=ctk.CTkFont(size=13), text_color=COLORS["text_secondary"])
+        subtitle_label.pack(pady=(0, 20))
+
+        # Zona de drag & drop
+        self.create_drag_drop_zone(main_frame)
+        # Secci√≥n de configuraci√≥n
+        self.create_config_section(main_frame)
+        # Secci√≥n de salida
+        self.create_output_section(main_frame)
+        # Botones de acci√≥n
+        self.create_action_buttons(main_frame)
+        # Barra de estado
+        self.create_status_bar(main_frame)
+
+    # --- PARTE 2 ---
+    def create_drag_drop_zone(self, parent):
+        """Crea la zona de drag & drop."""
+        # Frame contenedor
+        drop_frame = ModernFrame(parent)
+        drop_frame.pack(fill="x", pady=(0, 15))
+
+        # Zona de drop
+        self.drop_zone = ModernFrame(drop_frame, fg_color=COLORS["bg_accent"])
+        self.drop_zone.pack(fill="x", pady=5)
+
+        # Etiqueta de la zona de drop
+        self.drop_label = ctk.CTkLabel(
+            self.drop_zone,
+            text="üìÅ Arrastra una carpeta aqu√≠ o haz clic para buscar",
+            font=ctk.CTkFont(size=14),
+            text_color=COLORS["text_secondary"],
+            anchor="center"
+        )
+        self.drop_label.pack(expand=True, fill="both")
+
+        # Hacer la zona clickeable
+        self.drop_zone.bind("<Button-1>", self.select_folder)
+        self.drop_label.bind("<Button-1>", self.select_folder)
+
+        # Efectos hover
+        self.drop_zone.bind("<Enter>", self.on_drop_zone_enter)
+        self.drop_zone.bind("<Leave>", self.on_drop_zone_leave)
+
+        # Mostrar carpeta seleccionada
+        self.source_path_label = ctk.CTkLabel(
+            drop_frame,
+            text="Ninguna carpeta seleccionada",
+            font=ctk.CTkFont(size=11),
+            text_color=COLORS["text_secondary"]
+        )
+        self.source_path_label.pack(fill="x", pady=(10, 0))
+    
+    def create_config_section(self, parent):
+        """Crea la secci√≥n de configuraci√≥n."""
+        config_frame = ModernFrame(parent)
+        config_frame.pack(fill="x", pady=(0, 15))
+
+        # Frame para botones de configuraci√≥n
+        buttons_frame = ModernFrame(config_frame, fg_color=COLORS["bg_primary"])
+        buttons_frame.pack(fill="x")
+
+        # Bot√≥n de configuraci√≥n avanzada
+        self.config_button = ModernButton(
+            buttons_frame,
+            text="‚öôÔ∏è Configurar Extensiones y Exclusiones",
+            command=self.open_config_dialog
+        )
+        self.config_button.pack(side="left", padx=(0, 10))
+
+        # Bot√≥n de vista previa
+        self.preview_button = ModernButton(
+            buttons_frame,
+            text="üëÅÔ∏è Vista Previa",
+            command=self.show_preview,
+            state="disabled"
+        )
+        self.preview_button.pack(side="left")
+    
+    def create_output_section(self, parent):
+        """Crea la secci√≥n de archivo de salida."""
+        output_frame = ModernFrame(parent)
+        output_frame.pack(fill="x", pady=(0, 15))
+
+        # Frame para ruta de salida
+        path_frame = ModernFrame(output_frame, fg_color=COLORS["bg_primary"])
+        path_frame.pack(fill="x", pady=(0, 10))
+
+        # Entry para ruta de salida
+        self.output_entry = ctk.CTkEntry(path_frame, font=ctk.CTkFont(size=11), width=350)
+        self.output_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.output_entry.insert(0, DEFAULT_OUTPUT_FILENAME)
+
+        # Bot√≥n para seleccionar ubicaci√≥n
+        self.browse_button = ModernButton(
+            path_frame,
+            text="üìÇ Buscar",
+            command=self.select_output_file
+        )
+        self.browse_button.pack(side="right")
+    
+    def create_action_buttons(self, parent):
+        """Crea los botones de acci√≥n principales."""
+        action_frame = ModernFrame(parent, fg_color=COLORS["bg_primary"])
+        action_frame.pack(fill="x", pady=15)
+
+        # Bot√≥n de extracci√≥n
+        self.extract_button = ModernButton(
+            action_frame,
+            text="üöÄ Extraer C√≥digo",
+            command=self.start_extraction,
+            state="disabled",
+            primary=True
+        )
+        self.extract_button.pack(side="right", padx=(10, 0))
+
+        # Bot√≥n de limpiar
+        self.clear_button = ModernButton(
+            action_frame,
+            text="üóëÔ∏è Limpiar",
+            command=self.clear_selection
+        )
+        self.clear_button.pack(side="right")
+    
+    def create_status_bar(self, parent):
+        """Crea la barra de estado."""
+        status_frame = ModernFrame(parent, fg_color=COLORS["bg_secondary"])
+        status_frame.pack(fill="x", side="bottom")
+
+        self.status_label = ctk.CTkLabel(
+            status_frame,
+            text="Listo para extraer c√≥digo",
+            font=ctk.CTkFont(size=10),
+            text_color=COLORS["text_secondary"]
+        )
+        self.status_label.pack(side="left", pady=5)
+    
+    def setup_drag_drop(self):
+        """Configura la funcionalidad de drag & drop."""
+        self.drop_zone.drop_target_register(DND_FILES)
+        self.drop_zone.dnd_bind('<<Drop>>', self.on_drop)
+        
+        self.drop_label.drop_target_register(DND_FILES)
+        self.drop_label.dnd_bind('<<Drop>>', self.on_drop)
+    
+    def on_drop(self, event):
+        """Maneja el evento de soltar archivos."""
+        files = self.root.tk.splitlist(event.data)
+        if files:
+            path = files[0]
+            if os.path.isdir(path):
+                self.set_source_path(path)
+            else:
+                messagebox.showwarning("Advertencia", 
+                                     "Por favor, selecciona una carpeta, no un archivo.")
+    
+    def on_drop_zone_enter(self, event):
+        """Efecto hover al entrar en la zona de drop."""
+        self.drop_zone.configure(style='DropZone.TFrame')
+        self.drop_label.configure(foreground=COLORS["text_primary"])
+    
+    def on_drop_zone_leave(self, event):
+        """Efecto hover al salir de la zona de drop."""
+        self.drop_label.configure(foreground=COLORS["text_secondary"])
+    
+    def select_folder(self, event=None):
+        """Abre el di√°logo para seleccionar carpeta."""
+        folder = filedialog.askdirectory(title="Seleccionar carpeta del proyecto")
+        if folder:
+            self.set_source_path(folder)
+    
+    def set_source_path(self, path):
+        """Establece la carpeta de origen."""
+        self.current_source_path = path
+        
+        # Mostrar ruta truncada si es muy larga
+        display_path = path
+        if len(display_path) > 80:
+            display_path = "..." + display_path[-77:]
+        
+        self.source_path_label.configure(text=f"üìÅ {display_path}")
+        self.drop_label.configure(text=f"‚úì Carpeta seleccionada: {os.path.basename(path)}")
+        
+        # Habilitar botones
+        self.extract_button.configure(state='normal')
+        self.preview_button.configure(state='normal')
+        
+        # Actualizar estado
+        self.update_status("Carpeta seleccionada. Listo para extraer.")
+    
+    def select_output_file(self):
+        """Selecciona el archivo de salida."""
+        file_path = filedialog.asksaveasfilename(
+            title="Guardar archivo de c√≥digo extra√≠do",
+            defaultextension=".txt",
+            filetypes=[
+                ("Archivos de texto", "*.txt"),
+                ("Todos los archivos", "*.*")
+            ],
+            initialfile=DEFAULT_OUTPUT_FILENAME
+        )
+        
+        if file_path:
+            self.output_entry.delete(0, tk.END)
+            self.output_entry.insert(0, file_path)
+    
+    def open_config_dialog(self):
+        """Abre el di√°logo de configuraci√≥n."""
+        dialog = ConfigDialog(self.root, self.extractor)
+        self.root.wait_window(dialog.dialog)
+    
+    def show_preview(self):
+        """Muestra una vista previa de los archivos a procesar."""
+        if not self.current_source_path:
+            return
+        
+        try:
+            summary = self.extractor.get_summary(self.current_source_path)
+            
+            preview_text = f"""
+=== VISTA PREVIA ===
+
+üìÅ Carpeta: {self.current_source_path}
+
+üìä Estad√≠sticas:
+‚Ä¢ Total de carpetas: {summary.get('total_folders', 0)}
+‚Ä¢ Total de archivos: {summary.get('total_files', 0)}
+‚Ä¢ Archivos a procesar: {summary.get('allowed_files', 0)}
+‚Ä¢ Archivos excluidos: {summary.get('excluded_files', 0)}
+‚Ä¢ Tama√±o total: {self.format_size(summary.get('total_size', 0))}
+
+üìã Extensiones encontradas:
+"""
+            
+            for ext, count in sorted(summary.get('extensions', {}).items()):
+                if ext in self.extractor.allowed_extensions:
+                    preview_text += f"‚Ä¢ {ext or '(sin extensi√≥n)'}: {count} archivos ‚úì\n"
+                else:
+                    preview_text += f"‚Ä¢ {ext or '(sin extensi√≥n)'}: {count} archivos (excluido)\n"
+            
+            if summary.get('largest_file'):
+                preview_text += f"\nüìÑ Archivo m√°s grande: {summary['largest_file']} ({self.format_size(summary['largest_size'])})"
+            
+            # Mostrar en ventana de di√°logo
+            preview_window = tk.Toplevel(self.root)
+            preview_window.title("Vista Previa - Extractor de C√≥digo")
+            preview_window.geometry("600x500")
+            preview_window.configure(bg=COLORS["bg_primary"])
+            
+            # Hacer la ventana modal
+            preview_window.transient(self.root)
+            preview_window.grab_set()
+            
+            # Centrar ventana
+            preview_window.update_idletasks()
+            x = (preview_window.winfo_screenwidth() // 2) - (300)
+            y = (preview_window.winfo_screenheight() // 2) - (250)
+            preview_window.geometry(f'+{x}+{y}')
+            
+            # Texto de vista previa
+            text_frame = ttk.Frame(preview_window, padding=20)
+            text_frame.pack(fill=tk.BOTH, expand=True)
+            
+            text_widget = tk.Text(text_frame, 
+                                wrap=tk.WORD,
+                                bg=COLORS["bg_secondary"],
+                                fg=COLORS["text_primary"],
+                                font=('Consolas', 10),
+                                state='normal')
+            
+            scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL, command=text_widget.yview)
+            text_widget.configure(yscrollcommand=scrollbar.set)
+            
+            text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            text_widget.insert(tk.END, preview_text)
+            text_widget.configure(state='disabled')
+            
+            # Bot√≥n cerrar
+            close_button = ModernButton(preview_window, 
+                                      text="Cerrar",
+                                      command=preview_window.destroy)
+            close_button.pack(pady=10)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al generar vista previa: {str(e)}")
+    
+    def format_size(self, size_bytes):
+        """Formatea el tama√±o en bytes a una representaci√≥n legible."""
+        if size_bytes == 0:
+            return "0 B"
+        
+        sizes = ['B', 'KB', 'MB', 'GB']
+        i = 0
+        
+        while size_bytes >= 1024 and i < len(sizes) - 1:
+            size_bytes /= 1024
+            i += 1
+        
+        return f"{size_bytes:.1f} {sizes[i]}"
+    
+    def start_extraction(self):
+        """Inicia el proceso de extracci√≥n en un hilo separado."""
+        if not self.current_source_path:
+            messagebox.showwarning("Advertencia", "Por favor, selecciona una carpeta primero.")
+            return
+        
+        output_path = self.output_entry.get().strip()
+        if not output_path:
+            messagebox.showwarning("Advertencia", "Por favor, especifica un archivo de salida.")
+            return
+        
+        # Crear directorio de salida si no existe
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir)
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo crear el directorio: {str(e)}")
+                return
+        
+        # Crear di√°logo de progreso
+        self.progress_dialog = ProgressDialog(self.root, self.cancel_extraction)
+        
+        # Configurar callback de progreso
+        self.extractor.set_progress_callback(self.progress_dialog.update_progress)
+        
+        # Iniciar extracci√≥n en hilo separado
+        self.extraction_thread = threading.Thread(
+            target=self.run_extraction,
+            args=(self.current_source_path, output_path),
+            daemon=True
+        )
+        self.extraction_thread.start()
+        
+        # Mostrar di√°logo de progreso
+        self.progress_dialog.show()
+    
+    def run_extraction(self, source_path, output_path):
+        """Ejecuta la extracci√≥n en un hilo separado."""
+        try:
+            log_path = os.path.join(os.path.dirname(output_path), DEFAULT_LOG_FILENAME)
+            
+            processed_files, errors = self.extractor.extract_content(
+                source_path, output_path, log_path
+            )
+            
+            # Programar la actualizaci√≥n de la UI en el hilo principal
+            self.root.after(0, self.extraction_completed, processed_files, errors, output_path)
+            
+        except Exception as e:
+            self.root.after(0, self.extraction_error, str(e))
+    
+    def extraction_completed(self, processed_files, errors, output_path):
+        """Maneja la finalizaci√≥n exitosa de la extracci√≥n."""
+        self.progress_dialog.close()
+        
+        message = f"Extracci√≥n completada exitosamente!\n\n"
+        message += f"üìÅ Archivos procesados: {processed_files}\n"
+        message += f"‚ö†Ô∏è Errores: {len(errors)}\n"
+        message += f"üíæ Archivo guardado en: {output_path}"
+        
+        if errors:
+            message += f"\n\nAlgunos archivos no pudieron procesarse. "
+            message += f"Revisa el archivo de log para m√°s detalles."
+        
+        messagebox.showinfo("Extracci√≥n Completada", message)
+        self.update_status(f"Extracci√≥n completada. {processed_files} archivos procesados.")
+    
+    def extraction_error(self, error_message):
+        """Maneja errores durante la extracci√≥n."""
+        self.progress_dialog.close()
+        messagebox.showerror("Error", f"Error durante la extracci√≥n:\n{error_message}")
+        self.update_status("Error durante la extracci√≥n.")
+    
+    def cancel_extraction(self):
+        """Cancela la extracci√≥n en curso."""
+        if self.extractor:
+            self.extractor.cancel_extraction()
+        self.update_status("Extracci√≥n cancelada.")
+    
+    def clear_selection(self):
+        """Limpia la selecci√≥n actual."""
+        self.current_source_path = ""
+        self.source_path_label.configure(text="Ninguna carpeta seleccionada")
+        self.drop_label.configure(text="üìÅ Arrastra una carpeta aqu√≠ o haz clic para buscar")
+        self.extract_button.configure(state='disabled')
+        self.preview_button.configure(state='disabled')
+        self.update_status("Listo para extraer c√≥digo")
+    
+    def update_status(self, message):
+        """Actualiza el mensaje de estado."""
+        self.status_label.configure(text=message)
+        self.root.update_idletasks()
+    
+    def run(self):
+        """Inicia la aplicaci√≥n."""
+        self.root.mainloop()
+--- Fin del archivo: gui\main_window.py ---
+
+--- Inicio del archivo: gui\__init__.py ---
+"""
+Módulo GUI del Extractor de Código.
+Contiene la interfaz gráfica y componentes visuales.
+"""
+
+from .main_window import CodeExtractorGUI
+from .components import ProgressDialog, ConfigDialog, ModernButton
+
+__all__ = ['CodeExtractorGUI', 'ProgressDialog', 'ConfigDialog', 'ModernButton']
+--- Fin del archivo: gui\__init__.py ---
+
+--- Carpeta: logs ---
+(Carpeta vacía)
+
+
+==================================================
+=== RESUMEN DE EXTRACCIÓN ===
+Archivos procesados exitosamente: 9
+Errores encontrados: 0
+==================================================
