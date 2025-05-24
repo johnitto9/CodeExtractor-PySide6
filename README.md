@@ -10,7 +10,9 @@
   <a href="https://github.com/johnitto9/CodeExtractor-PySide6/releases/latest">
     <img src="https://img.shields.io/github/v/release/johnitto9/CodeExtractor-PySide6?style=for-the-badge" alt="Latest Release">
   </a>
-  [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](https://github.com/johnitto9/CodeExtractor-PySide6/blob/main/LICENSE)
+  <a href="https://github.com/johnitto9/CodeExtractor-PySide6/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"/>
+  </a>
   <a href="https://pypi.org/project/chardet/">
     <img src="https://img.shields.io/pypi/pyversions/chardet?style=for-the-badge" alt="Python Versions">
   </a>
